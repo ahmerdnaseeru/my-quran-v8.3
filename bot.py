@@ -1,116 +1,42 @@
 import requests
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, ContextTypes, filters
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 import random
 import os
-import time
 
 TOKEN = os.getenv("TOKEN")
 
-LANGUAGES = {"en": "en.sahih","ha": "en.sahih","ar": "ar.uthmani"}
-user_lang = {}
-
 SAHIH_BUKHARI = {
 "1": {"arabic": "إِنَّمَا الْأَعْمَالُ بِالنِّيَّاتِ", "english": "Actions are but by intentions", "meaning": "Every deed is judged by intention."},
-"2": {"arabic": "اتَّقِ اللَّهَ حَيْثُمَا كُنْتَ", "english": "Fear Allah wherever you are", "meaning": "Allah is always watching."},
-"3": {"arabic": "تَبَسُّمُكَ فِي وَجْهِ أَخِيكَ صَدَقَةٌ", "english": "Your smile to your brother is charity", "meaning": "Small deeds, big reward."},
-"4": {"arabic": "لَا تَغْضَبْ", "english": "Do not get angry", "meaning": "Control your anger."},
-"5": {"arabic": "الدُّنْيَا سِجْنُ الْمُؤْمِنِ", "english": "The world is a prison for the believer", "meaning": "This dunya is temporary."}
+"2": {"arabic": "اتَّقِ اللَّهَ حَيْثُمَا كُنْتَ", "english": "Fear Allah wherever you are", "meaning": "Allah is always watching."}
 }
 
-SURAH_LIST = ["1.Al-Fatiha","2.Al-Baqarah","3.Ali Imran","114.An-Nas"]
-
-BOT_DESCRIPTION = "🤍 **Sincerely Islamic Bot v8.4** 🤍\nFull 114 Surahs, Audio, Hadith & Search."
+BOT_DESCRIPTION = "🤍 **Sincerely Islamic Bot v8.4** 🤍"
 
 def get_random_hadith():
     key = random.choice(list(SAHIH_BUKHARI.keys()))
     h = SAHIH_BUKHARI[key]
     return f"📜 **Sahih Bukhari #{key}**\n\n`{h['arabic']}`\n\n**English:** {h['english']}\n\n**Meaning:** {h['meaning']}"
 
-def get_menu_keyboard():
-    return InlineKeyboardMarkup([
-        [InlineKeyboardButton("📖 Read Full Quran", callback_data="menu_quranlist")],
-        [InlineKeyboardButton("🎧 Play Quran Audio", callback_data="menu_play_help"), InlineKeyboardButton("🔍 Search Quran", callback_data="menu_search_help")],
-        [InlineKeyboardButton("📚 Hadith Library", callback_data="menu_hadith"), InlineKeyboardButton("🎲 Random Ayah", callback_data="menu_ayah")],
-        [InlineKeyboardButton("🌍 Change Language", callback_data="menu_lang")]
-    ])
-
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [[InlineKeyboardButton("English 🇺🇸", callback_data="lang_en")],[InlineKeyboardButton("Hausa 🇳🇬", callback_data="lang_ha")],[InlineKeyboardButton("Arabic 🇸🇦", callback_data="lang_ar")]]
+    keyboard = [[InlineKeyboardButton("English 🇺🇸", callback_data="lang_en")]]
     await update.message.reply_text(f"{BOT_DESCRIPTION}\n\n{get_random_hadith()}\n\n**Choose language:**", reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='Markdown')
+
+async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    await query.edit_message_text("Language selected! Bot is live Alhamdulillah 🤍")
 
 async def main():
     app = ApplicationBuilder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
+    app.add_handler(CallbackQueryHandler(button_handler))
     print("Sincerely Islamic Bot v8.4 Running...")
     await app.run_polling()
 
 if __name__ == "__main__":
     import asyncio
-    asyncio.run(main())async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    data = query.data
-    
-    if data.startswith("lang_"):
-        lang = data.split("_")[1]
-        user_lang[query.from_user.id] = lang
-        await query.edit_message_text(f"**Language: {lang.upper()}** ✅\n\n", parse_mode='Markdown')
-        time.sleep(0.5)
-        await query.message.reply_text("**What would you like to do?**", reply_markup=get_menu_keyboard(), parse_mode='Markdown')
-    
-    elif data == "menu_quranlist": await quranlist(update, context)
-    elif data == "menu_hadith": await hadith(update, context)
-    elif data == "menu_ayah": await ayah(update, context)
-    elif data == "menu_lang": await start(update, context)
-    elif data == "menu_play_help": await query.edit_message_text("**To play audio:**\nUse `/play 1` for Surah 1\nExample: `/play 112`", parse_mode='Markdown', reply_markup=get_back_keyboard("back_to_menu"))
-    elif data == "menu_search_help": await query.edit_message_text("**To search:**\nUse `/search jannah`\nExample: `/search tawakkul`", parse_mode='Markdown', reply_markup=get_back_keyboard("back_to_menu"))
-    elif data == "back_to_menu": await menu(update, context)
-    elif data.startswith("surah_"): await surah_callback(update, context)
-    elif data.startswith("hadith_"): await hadith_callback(update, context)
-    elif data == "back_to_list": await quranlist(update, context)
-    elif data == "back_to_hadith": await hadith(update, context)
-
-async def quranlist(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = []
-    row = []
-    for i, surah in enumerate(SURAH_LIST):
-        num = surah.split(".")[0]
-        name = surah.split(".")[1]
-        row.append(InlineKeyboardButton(f"{num}. {name}", callback_data=f"surah_{num}"))
-        if len(row) == 3:
-            keyboard.append(row)
-            row = []
-    if row: keyboard.append(row)
-    keyboard.append([InlineKeyboardButton("⬅️ Back to Menu", callback_data="back_to_menu")])
-    target = update.callback_query if update.callback_query else update
-    await target.message.reply_text("📖 **Select a Surah to Read - All 114**", reply_markup=InlineKeyboardMarkup(keyboard))
-
-async def surah_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    surah_num = query.data.split("_")[1]
-    lang_code = user_lang.get(query.from_user.id, "en")
-    trans_api = LANGUAGES.get(lang_code, "en.sahih")
-    await query.edit_message_text(f"⏳ Fetching Surah {surah_num}...")
-    try:
-        ar = requests.get(f"https://api.alquran.cloud/v1/surah/{surah_num}/ar.uthmani", timeout=30).json()['data']['ayahs']
-        en = requests.get(f"https://api.alquran.cloud/v1/surah/{surah_num}/{trans_api}", timeout=30).json()['data']['ayahs']
-        surah_name = SURAH_LIST[int(surah_num)-1].split(".")[1]
-        await query.message.reply_text(f"**📖 Surah {surah_name} - {len(ar)} Ayahs**\n\n", parse_mode='Markdown')
-        msg = ""
-        for i in range(len(ar)):
-            chunk = f"`{ar[i]['text']}`\n**{i+1}.** {en[i]['text']}\n\n"
-            if len(msg) + len(chunk) > 3500:
-                await query.message.reply_text(msg, parse_mode='Markdown')
-                msg = chunk
-                time.sleep(1)
-            else: msg += chunk
-        if msg: await query.message.reply_text(msg, parse_mode='Markdown')
-        await query.message.reply_text("**Finished**", reply_markup=get_back_keyboard("back_to_list"))
-    except: await query.message.reply_text("❌ Error fetching surah.")
-
-async def hadith(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [[InlineKeyboardButton(f"Sahih Bukhari #{num}", callback_data=f"hadith_{num}")] for num in SAHIH_BUKHARI.keys()]
+    asyncio.run(main())    keyboard = [[InlineKeyboardButton(f"Sahih Bukhari #{num}", callback_data=f"hadith_{num}")] for num in SAHIH_BUKHARI.keys()]
     keyboard.append([InlineKeyboardButton("🎲 Random Hadith", callback_data="hadith_random")])
     keyboard.append([InlineKeyboardButton("🏠 Main Menu", callback_data="back_to_menu")])
     target = update.callback_query if update.callback_query else update
