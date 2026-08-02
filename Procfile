@@ -1,1 +1,1 @@
-web: python bot.py
+   worker: python islamic_bot.py
