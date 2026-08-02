@@ -5,7 +5,7 @@ import random
 import os
 import time
 
-TOKEN = "8961687067:AAGfqmVYHxdMrwPjPOXytbpUk1qErA90Bbc"
+TOKEN = os.getenv("TOKEN")
 
 LANGUAGES = {"en": "en.sahih","ha": "en.sahih","ar": "ar.uthmani"}
 user_lang = {}
