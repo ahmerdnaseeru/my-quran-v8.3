@@ -1,3 +1,4 @@
+# SINCERELY ISLAMIC BOT v8.4 - DEPLOYED 2026
 import requests
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, ContextTypes, filters
